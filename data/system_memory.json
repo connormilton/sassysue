@@ -1,0 +1,20 @@
+{
+  "created": "2025-04-17T01:20:33.020439",
+  "last_updated": "2025-04-17T17:15:12.000235",
+  "trade_count": 8,
+  "win_count": 0,
+  "loss_count": 0,
+  "safety_level": 0.01,
+  "daily_drawdown": 0.0,
+  "daily_profit": 0.0,
+  "daily_profit_pct": 0.0,
+  "daily_high_balance": 416.3192,
+  "daily_starting_balance": 416.3192,
+  "total_risk_committed": 0.0,
+  "prompt_versions": [],
+  "strategy_weights": {
+    "trend_following": 1.0,
+    "breakout": 1.0,
+    "mean_reversion": 1.0
+  }
+}
