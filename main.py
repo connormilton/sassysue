@@ -344,7 +344,7 @@ class OandaClient:
             return []
     
     def execute_trade(self, direction, units, stop_loss=None, take_profit_levels=None, trailing_stop_distance=None):
-        """Execute a trade on EUR/USD with advanced risk management"""
+        """Execute a trade on EUR/USD with simplified risk management using OANDA's native functionality"""
         try:
             # Determine units based on direction
             if direction.upper() == "SELL":
@@ -367,20 +367,17 @@ class OandaClient:
             if stop_loss is not None:
                 order_data["order"]["stopLossOnFill"] = {
                     "price": str(stop_loss),
-                    "timeInForce": "GTC",
-                    "triggerMode": "TOP_OF_BOOK"
+                    "timeInForce": "GTC"
                 }
                 
                 # Add trailing stop if provided
                 if trailing_stop_distance is not None:
                     order_data["order"]["trailingStopLossOnFill"] = {
                         "distance": str(trailing_stop_distance),
-                        "timeInForce": "GTC",
-                        "triggerCondition": "DEFAULT"
+                        "timeInForce": "GTC"
                     }
             
             # Add take profit if provided (just the first level)
-            # We'll handle multiple take profit levels after the order is executed
             if take_profit_levels and len(take_profit_levels) > 0:
                 order_data["order"]["takeProfitOnFill"] = {
                     "price": str(take_profit_levels[0]),
@@ -405,9 +402,9 @@ class OandaClient:
                 trade_id = fill_txn.get("tradeOpened", {}).get("tradeID")
                 logger.info(f"Order executed and filled: {fill_id}, Trade ID: {trade_id}")
                 
-                # If we have multiple take profit levels, create partial close orders
-                if take_profit_levels and len(take_profit_levels) > 1 and trade_id:
-                    self._create_partial_profit_orders(trade_id, direction, units, take_profit_levels)
+                # Note: We no longer call _create_partial_profit_orders here
+                # This simplifies the implementation and avoids the error
+                
             else:
                 logger.info(f"Order created: {result.get('orderCreateTransaction', {}).get('id', 'Unknown ID')}")
                 
@@ -427,85 +424,6 @@ class OandaClient:
             logger.error(f"Error executing trade: {e}")
             return {"error": str(e)}
             
-    def _create_partial_profit_orders(self, trade_id, direction, total_units, take_profit_levels):
-        """Create partial take profit orders for staged profit-taking"""
-        try:
-            # We'll close the position in stages
-            # For example, with 3 levels, we'll close 33% at each level
-            num_levels = len(take_profit_levels) - 1  # Subtract 1 because first level is handled in initial order
-            units_per_level = abs(total_units) // (num_levels + 1)
-            
-            for i, tp_level in enumerate(take_profit_levels[1:], 1):
-                # Calculate units for this level
-                if i == num_levels:  # Last level, close whatever remains
-                    close_units = "ALL"
-                else:
-                    close_units = str(units_per_level)
-                
-                # Create take profit order
-                take_profit_order = {
-                    "order": {
-                        "type": "TAKE_PROFIT",
-                        "tradeID": trade_id,
-                        "price": str(tp_level),
-                        "timeInForce": "GTC",
-                        "triggerCondition": "DEFAULT",
-                        "clientExtensions": {
-                            "comment": f"Take profit level {i+1}"
-                        }
-                    }
-                }
-                
-                # Submit the order
-                response = self.session.post(
-                    f"{self.base_url}/v3/accounts/{OANDA_ACCOUNT_ID}/orders",
-                    json=take_profit_order
-                )
-                response.raise_for_status()
-                result = response.json()
-                logger.info(f"Created take profit order for level {i+1} at {tp_level}: {result.get('orderCreateTransaction', {}).get('id', 'Unknown ID')}")
-                
-        except Exception as e:
-            logger.error(f"Error creating partial profit orders: {e}")
-            
-    def get_market_sentiment(self):
-        """Get market sentiment data for EUR/USD
-        This would normally come from an external API, but we'll simulate it"""
-        try:
-            import random
-            
-            # Simulate sentiment data
-            bullish_percent = random.randint(30, 70)
-            bearish_percent = 100 - bullish_percent
-            
-            # Volume indicators
-            volume_status = random.choice(["High", "Average", "Low"])
-            
-            # Positioning data
-            positioning = {
-                "retail_long_percent": random.randint(30, 70),
-                "retail_short_percent": random.randint(30, 70),
-                "institutional_bias": random.choice(["Bullish", "Bearish", "Neutral"])
-            }
-            
-            return {
-                "pair": "EUR/USD",
-                "timestamp": datetime.datetime.now().isoformat(),
-                "sentiment": {
-                    "bullish_percent": bullish_percent,
-                    "bearish_percent": bearish_percent,
-                    "overall": "Bullish" if bullish_percent > 55 else "Bearish" if bullish_percent < 45 else "Neutral"
-                },
-                "volume": {
-                    "status": volume_status,
-                    "relative_to_average": random.uniform(0.8, 1.2)
-                },
-                "positioning": positioning
-            }
-        except Exception as e:
-            logger.error(f"Error getting market sentiment: {e}")
-            return {}
-    
     def update_stop_loss(self, stop_loss):
         """Update stop loss for EUR/USD position"""
         try:
@@ -546,6 +464,44 @@ class OandaClient:
         except Exception as e:
             logger.error(f"Error updating stop loss: {e}")
             return {"error": str(e)}
+
+    def get_market_sentiment(self):
+        """Get market sentiment data for EUR/USD
+        This would normally come from an external API, but we'll simulate it"""
+        try:
+            import random
+            
+            # Simulate sentiment data
+            bullish_percent = random.randint(30, 70)
+            bearish_percent = 100 - bullish_percent
+            
+            # Volume indicators
+            volume_status = random.choice(["High", "Average", "Low"])
+            
+            # Positioning data
+            positioning = {
+                "retail_long_percent": random.randint(30, 70),
+                "retail_short_percent": random.randint(30, 70),
+                "institutional_bias": random.choice(["Bullish", "Bearish", "Neutral"])
+            }
+            
+            return {
+                "pair": "EUR/USD",
+                "timestamp": datetime.datetime.now().isoformat(),
+                "sentiment": {
+                    "bullish_percent": bullish_percent,
+                    "bearish_percent": bearish_percent,
+                    "overall": "Bullish" if bullish_percent > 55 else "Bearish" if bullish_percent < 45 else "Neutral"
+                },
+                "volume": {
+                    "status": volume_status,
+                    "relative_to_average": random.uniform(0.8, 1.2)
+                },
+                "positioning": positioning
+            }
+        except Exception as e:
+            logger.error(f"Error getting market sentiment: {e}")
+            return {}
 
 # --- Memory System ---
 class TradingMemory:
@@ -831,13 +787,19 @@ Respond in JSON format with:
                     {"role": "user", "content": user_prompt}
                 ],
                 temperature=0.3,
-                response_format={"type": "json_object"}
+                response_format={"type": "json_object"},
+                max_tokens=4000  # Limit token count to avoid oversized responses
             )
             
-            # Parse response
-            result = json.loads(completion.choices[0].message.content)
-            logger.info(f"LLM response received: {result.get('action', 'unknown action')}")
-            return result
+            # Parse response with error handling
+            try:
+                result = json.loads(completion.choices[0].message.content)
+                logger.info(f"LLM response received: {result.get('action', 'unknown action')}")
+                return result
+            except json.JSONDecodeError as json_err:
+                logger.error(f"JSON parsing error: {json_err}")
+                # Return a safe default response
+                return {"error": f"JSON parsing error: {str(json_err)}", "action": "WAIT"}
         except Exception as e:
             logger.error(f"Error calling LLM API: {e}")
             return {"error": str(e), "action": "WAIT"}
@@ -897,51 +859,57 @@ Respond in JSON format with:
                     {"role": "user", "content": review_prompt}
                 ],
                 temperature=0.3,
-                response_format={"type": "json_object"}
+                response_format={"type": "json_object"},
+                max_tokens=4000  # Limit token count to avoid oversized responses
             )
             
-            # Parse response
-            result = json.loads(completion.choices[0].message.content)
-            
-            # Update system with recommendations
-            if "improved_prompt" in result and result["improved_prompt"]:
-                self.system_prompt = result["improved_prompt"]
-                logger.info("Updated system prompt based on review")
-            
-            # Parse and convert strategy weights to floats
-            if "strategy_weights" in result:
-                try:
-                    strategy_weights = {}
-                    for strategy, weight in result["strategy_weights"].items():
-                        if isinstance(weight, (int, float)):
-                            strategy_weights[strategy] = float(weight)
-                        elif isinstance(weight, str):
-                            # Try to convert string to float
-                            try:
-                                strategy_weights[strategy] = float(weight.replace("float", "").strip())
-                            except:
+            # Parse response with error handling
+            try:
+                result = json.loads(completion.choices[0].message.content)
+                
+                # Update system with recommendations
+                if "improved_prompt" in result and result["improved_prompt"]:
+                    self.system_prompt = result["improved_prompt"]
+                    logger.info("Updated system prompt based on review")
+                
+                # Parse and convert strategy weights to floats
+                if "strategy_weights" in result:
+                    try:
+                        strategy_weights = {}
+                        for strategy, weight in result["strategy_weights"].items():
+                            if isinstance(weight, (int, float)):
+                                strategy_weights[strategy] = float(weight)
+                            elif isinstance(weight, str):
+                                # Try to convert string to float
+                                try:
+                                    strategy_weights[strategy] = float(weight.replace("float", "").strip())
+                                except:
+                                    strategy_weights[strategy] = 1.0  # Default
+                            else:
                                 strategy_weights[strategy] = 1.0  # Default
-                        else:
-                            strategy_weights[strategy] = 1.0  # Default
-                    
-                    # If valid weights were found, use them
-                    if strategy_weights:
-                        result["strategy_weights"] = strategy_weights
-                        logger.info(f"Updated strategy weights: {strategy_weights}")
-                except Exception as e:
-                    logger.error(f"Error converting strategy weights: {e}")
-            
-            # Log the review
-            self.memory.log_review({
-                "timestamp": datetime.datetime.now().isoformat(),
-                "review": result["performance_analysis"],
-                "strategy_weights": result.get("strategy_weights", self.memory.memory["strategy_weights"]),
-                "prompt_version": self.system_prompt,
-                "reason": result.get("reasoning", "Scheduled review")
-            })
-            
-            logger.info("Completed system evolution review")
-            return result
+                        
+                        # If valid weights were found, use them
+                        if strategy_weights:
+                            result["strategy_weights"] = strategy_weights
+                            logger.info(f"Updated strategy weights: {strategy_weights}")
+                    except Exception as e:
+                        logger.error(f"Error converting strategy weights: {e}")
+                
+                # Log the review
+                self.memory.log_review({
+                    "timestamp": datetime.datetime.now().isoformat(),
+                    "review": result["performance_analysis"],
+                    "strategy_weights": result.get("strategy_weights", self.memory.memory["strategy_weights"]),
+                    "prompt_version": self.system_prompt,
+                    "reason": result.get("reasoning", "Scheduled review")
+                })
+                
+                logger.info("Completed system evolution review")
+                return result
+            except json.JSONDecodeError as json_err:
+                logger.error(f"JSON parsing error in review: {json_err}")
+                return {"error": f"JSON parsing error: {str(json_err)}"}
+                
         except Exception as e:
             logger.error(f"Error in system evolution review: {e}")
             return {"error": str(e)}
@@ -1082,16 +1050,22 @@ class EURUSDTradingBot:
             
             # THEN check margin with the limited position size
             margin_available = self.oanda.get_margin_available()
-            margin_needed = units * entry_price * 0.02  # Approximate margin needed (2% of position value)
+            margin_needed = units * entry_price * 0.03  # Using 3% instead of 2% for safety
             
             if margin_needed > margin_available:
                 logger.warning(f"Insufficient margin: needed {margin_needed:.2f}, available {margin_available:.2f}")
-                # Reduce position size to fit available margin (leave 20% buffer)
-                max_units = int((margin_available * 0.8) / (entry_price * 0.02))
+                # More conservative reduction - leave 30% buffer
+                max_units = int((margin_available * 0.7) / (entry_price * 0.03))
                 # Ensure it doesn't go below minimum
                 max_units = max(max_units, 1000)
                 units = min(units, max_units)
                 logger.info(f"Reduced position size to {units} units due to margin constraints")
+                
+                # Double-check if we have enough margin with the reduced size
+                new_margin_needed = units * entry_price * 0.03
+                if new_margin_needed > margin_available:
+                    logger.warning(f"Still insufficient margin after reduction. Skipping trade.")
+                    return False
             
             logger.info(f"Calculated position size: {units} units based on risk {risk_percent}% and stop distance {stop_distance}")
             
@@ -1308,45 +1282,71 @@ class EURUSDTradingBot:
                 else:
                     f.write("No open positions\n\n")
                 
-                # Technical Summary
-                if market_data and "technical_indicators" in market_data:
-                    f.write("TECHNICAL INDICATORS\n")
-                    f.write("-" * 80 + "\n")
-                    tech = market_data["technical_indicators"]
-                    
-                    # MA status
-                    if "moving_averages" in tech:
-                        ma = tech["moving_averages"]
-                        ma_20 = ma.get('MA_20')
-                        ma_50 = ma.get('MA_50')
-                        ma_100 = ma.get('MA_100')
-                        f.write(f"MA20: {ma_20:.5f if pd.notna(ma_20) else 'N/A'}, "
-                                f"MA50: {ma_50:.5f if pd.notna(ma_50) else 'N/A'}, "
-                                f"MA100: {ma_100:.5f if pd.notna(ma_100) else 'N/A'}\n")
+                # Technical Summary - write this section using try/except to catch formatting errors
+                try:
+                    if market_data and "technical_indicators" in market_data:
+                        f.write("TECHNICAL INDICATORS\n")
+                        f.write("-" * 80 + "\n")
+                        tech = market_data["technical_indicators"]
                         
-                    # Oscillators
-                    if "oscillators" in tech:
-                        osc = tech["oscillators"]
-                        rsi = osc.get('RSI')
-                        macd = osc.get('MACD')
-                        f.write(f"RSI(14): {rsi:.2f if pd.notna(rsi) else 'N/A'}, "
-                                f"MACD: {macd:.5f if pd.notna(macd) else 'N/A'}\n")
-                        
-                    # Volatility
-                    if "volatility" in tech:
-                        vol = tech["volatility"]
-                        atr = vol.get('ATR')
-                        bb_width = vol.get('BB_Width')
-                        f.write(f"ATR(14): {atr:.5f if pd.notna(atr) else 'N/A'}, "
-                                f"BB Width: {bb_width:.5f if pd.notna(bb_width) else 'N/A'}\n")
-                        
-                    # Support/Resistance
-                    if "support_resistance" in tech:
-                        sr = tech["support_resistance"]
-                        resistance = ', '.join([f'{r:.5f}' for r in sr.get('key_resistance_levels', []) if pd.notna(r)])
-                        support = ', '.join([f'{s:.5f}' for s in sr.get('key_support_levels', []) if pd.notna(s)])
-                        f.write(f"Resistance: {resistance or 'None'}\n")
-                        f.write(f"Support: {support or 'None'}\n\n")
+                        # MA status
+                        if "moving_averages" in tech:
+                            ma = tech["moving_averages"]
+                            ma_20 = ma.get('MA_20')
+                            ma_50 = ma.get('MA_50')
+                            ma_100 = ma.get('MA_100')
+                            
+                            # Use built-in format() function instead of f-string formatting
+                            ma20_str = format(ma_20, '.5f') if pd.notna(ma_20) and ma_20 is not None else 'N/A'
+                            ma50_str = format(ma_50, '.5f') if pd.notna(ma_50) and ma_50 is not None else 'N/A'
+                            ma100_str = format(ma_100, '.5f') if pd.notna(ma_100) and ma_100 is not None else 'N/A'
+                            
+                            f.write(f"MA20: {ma20_str}, MA50: {ma50_str}, MA100: {ma100_str}\n")
+                            
+                        # Oscillators
+                        if "oscillators" in tech:
+                            osc = tech["oscillators"]
+                            rsi = osc.get('RSI')
+                            macd = osc.get('MACD')
+                            
+                            rsi_str = format(rsi, '.2f') if pd.notna(rsi) and rsi is not None else 'N/A'
+                            macd_str = format(macd, '.5f') if pd.notna(macd) and macd is not None else 'N/A'
+                            
+                            f.write(f"RSI(14): {rsi_str}, MACD: {macd_str}\n")
+                            
+                        # Volatility
+                        if "volatility" in tech:
+                            vol = tech["volatility"]
+                            atr = vol.get('ATR')
+                            bb_width = vol.get('BB_Width')
+                            
+                            atr_str = format(atr, '.5f') if pd.notna(atr) and atr is not None else 'N/A'
+                            bb_width_str = format(bb_width, '.5f') if pd.notna(bb_width) and bb_width is not None else 'N/A'
+                            
+                            f.write(f"ATR(14): {atr_str}, BB Width: {bb_width_str}\n")
+                            
+                        # Support/Resistance
+                        if "support_resistance" in tech:
+                            sr = tech["support_resistance"]
+                            resistance_levels = sr.get('key_resistance_levels', [])
+                            support_levels = sr.get('key_support_levels', [])
+                            
+                            resistance = []
+                            for r in resistance_levels:
+                                if pd.notna(r) and r is not None:
+                                    resistance.append(format(r, '.5f'))
+                            
+                            support = []
+                            for s in support_levels:
+                                if pd.notna(s) and s is not None:
+                                    support.append(format(s, '.5f'))
+                            
+                            f.write(f"Resistance: {', '.join(resistance) if resistance else 'None'}\n")
+                            f.write(f"Support: {', '.join(support) if support else 'None'}\n\n")
+                except Exception as fmt_error:
+                    # If any formatting error occurs, use a simplified output
+                    logger.error(f"Error formatting technical indicators: {fmt_error}")
+                    f.write("Error formatting technical indicators. See raw data in logs.\n\n")
                 
                 # Intermarket Analysis
                 if market_data and "intermarket" in market_data:
@@ -1357,7 +1357,10 @@ class EURUSDTradingBot:
                     if "correlations" in inter:
                         f.write("Key Correlations:\n")
                         for k, v in inter["correlations"].items():
-                            f.write(f"{k}: {v:.2f}\n")
+                            try:
+                                f.write(f"{k}: {v:.2f}\n")
+                            except:
+                                f.write(f"{k}: {v}\n")
                         f.write("\n")
                         
                 # Market Analysis
