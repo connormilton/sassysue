@@ -1,20 +1,31 @@
 {
-  "created": "2025-04-17T01:20:33.020439",
-  "last_updated": "2025-04-17T17:42:55.616865",
-  "trade_count": 11,
+  "created": "2025-04-18T04:52:49.415388",
+  "last_updated": "2025-04-18T06:55:14.193038",
+  "trade_count": 3,
   "win_count": 0,
   "loss_count": 0,
   "safety_level": 0.01,
-  "daily_drawdown": 0.006280426230492858,
-  "daily_profit": 2006.931,
-  "daily_profit_pct": 482.065444015073,
-  "daily_high_balance": 2423.4024,
-  "daily_starting_balance": 416.3192,
+  "daily_drawdown": 0.0,
+  "daily_profit": 0.0,
+  "daily_profit_pct": 0.0,
+  "daily_high_balance": 2407.4283,
+  "daily_starting_balance": 2407.4283,
   "total_risk_committed": 0.0,
-  "prompt_versions": [],
+  "prompt_versions": [
+    {
+      "timestamp": "2025-04-18T05:51:54.042690",
+      "content": "Your goal remains to achieve a 10% daily return while respecting strict risk management protocols. Focus on identifying high-probability setups using a balanced mix of trend-following, breakout, and mean reversion strategies. Prioritize trades with a higher expected win rate based on recent performance and market analysis. Implement more dynamic risk management, adjusting stop loss and take profit levels to current market conditions. Continuously learn from past trades, focusing on why certain trades did not meet expectations and adjust strategies accordingly.",
+      "reason": "The adjustment in strategy weights is recommended to diversify the trading approach better and potentially capture more opportunities in varying market conditions. The increase in weight for breakout strategies is due to the observation that the current market may not be favoring the trend-following approach as much, and breakout strategies could capitalize on sudden market moves. The reduction in risk per trade and the dynamic adjustment of stop loss and take profit levels are aimed at improving the win rate and ensuring that the account risk is kept within acceptable limits. This approach encourages a more adaptable and responsive trading strategy that can evolve with market conditions."
+    },
+    {
+      "timestamp": "2025-04-18T06:55:14.191896",
+      "content": "Your refined goal is to achieve a daily return closer to the target while adhering to enhanced risk management protocols. Concentrate on identifying high-probability setups by leveraging a revised mix of trend-following, breakout, and mean reversion strategies, with increased emphasis on mean reversion in current market conditions. Prioritize trades with a higher expected win rate, informed by an updated analysis of recent performance and market dynamics. Introduce more nuanced risk management, including dynamic stop loss and take profit adjustments reflective of the latest market volatility and trends. Continually learn from past trade outcomes, focusing on detailed post-trade analysis to refine strategy application and entry/exit timing.",
+      "reason": "The adjustment in strategy weights is proposed to better align with current market conditions that may favor mean reversion setups, as indicated by the recent failure of trend-following strategies to capture profitable moves. The reduction in risk percent per trade and the introduction of dynamic stop loss adjustments are aimed at enhancing capital preservation, which is critical given the current win rate. These adjustments, along with a refined system prompt, are designed to foster a more adaptive and resilient trading approach that can better navigate market uncertainties and capitalize on high-probability trading opportunities."
+    }
+  ],
   "strategy_weights": {
-    "trend_following": 1.0,
+    "trend_following": 0.3,
     "breakout": 1.0,
-    "mean_reversion": 1.0
+    "mean_reversion": 1.7
   }
 }
